@@ -12,7 +12,7 @@ if [ ! -f "${DEVPISERVER_SERVERDIR}/.nodeinfo" ]; then
 
     (
         echo "waiting for devpi-server start"
-        sleep 5
+        sleep 10
         devpi use "http://${DEVPISERVER_HOST}:3141"
         devpi login root --password=""
         devpi user -m root password="${DEVPISERVER_ROOT_PASSWORD}"
