@@ -1,0 +1,32 @@
+version: "2"
+
+services:
+  debian-ssh:
+    build:
+      context: .
+      dockerfile: "debian/ssh.Dockerfile"
+
+  ubuntu-ssh:
+    build:
+      context: .
+      dockerfile: "ubuntu/ssh.Dockerfile"
+
+  debian-py3:
+    build:
+      context: .
+      dockerfile: "debian/py3.Dockerfile"
+
+  ubuntu-py3:
+    build:
+      context: .
+      dockerfile: "ubuntu/py3.Dockerfile"
+
+  debian-build:
+    build:
+      context: .
+      dockerfile: "debian/build.Dockerfile"
+
+  ubuntu-build:
+    build:
+      context: .
+      dockerfile: "ubuntu/build.Dockerfile"

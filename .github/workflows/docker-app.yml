@@ -1,0 +1,117 @@
+on:
+  push:
+    # Publish `main` as Docker `latest` image.
+    branches:
+      - main
+
+    # Publish `v1.2.3` tags as releases.
+    tags:
+      - v*
+
+    paths:
+      - ".github/workflows/docker-app.yml"
+      - "*.app.test.yml"
+      - "app/**"
+
+  # Run tests for any PRs.
+  pull_request:
+
+  # Triggered every week.
+  schedule:
+    - cron: "0 0 * * FRI"
+
+env:
+  REGISTRY: docker.io
+  REGISTRY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+
+jobs:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        env:
+          FILE_PATH: docker-compose.app.test.yml
+        run: |
+          if [ -f $FILE_PATH ]; then
+            docker-compose --file $FILE_PATH build
+          fi
+
+  push:
+    # Ensure test job passes before pushing image.
+    needs: test
+
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+
+    strategy:
+      matrix:
+        feature:
+          - name: cacher
+            context: .
+            file: app/apt-cacher-ng.Dockerfile
+            image: app:cacher
+          - name: vlmcsd
+            context: .
+            file: app/vlmcsd.Dockerfile
+            image: app:vlmcsd
+          - name: coredns
+            context: app/coredns
+            file: app/coredns/coredns.Dockerfile
+            image: coredns:latest
+          - name: devpi
+            context: app/devpi
+            file: app/devpi/devpi-server.Dockerfile
+            image: devpi:latest
+          - name: isc-dhcpd
+            context: .
+            file: app/dhcpd/alpine.Dockerfile
+            image: isc-dhcpd:alpine
+          - name: logstash
+            context: .
+            file: app/logstash/aliyun.Dockerfile
+            image: logstash:aliyun
+          - name: n2n
+            context: .
+            file: app/n2n/supernode.Dockerfile
+            image: n2n:supernode-2.8
+          - name: nostrict-5.7
+            context: .
+            file: app/mysql/nostrict-5.7.Dockerfile
+            image: mysql:nostrict-5.7
+          - name: pescms-5.7
+            context: .
+            file: app/mysql/pescms-5.7.Dockerfile
+            image: mysql:pescms-5.7
+          - name: tomcat-7.0.23-jdk6
+            context: app/tomcat
+            file: app/tomcat/tomcat-7.0.23-jdk6.Dockerfile
+            image: tomcat:7.0.23-jdk6
+          - name: tomcat-7.0.23-jre6
+            context: app/tomcat
+            file: app/tomcat/tomcat-7.0.23-jre6.Dockerfile
+            image: tomcat:7.0.23-jre6
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build the Docker image
+        run: docker build ${{ matrix.feature.context }}
+          --file ${{ matrix.feature.file }}
+          --tag ${{ matrix.feature.image }}
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Push image
+        run: |
+          IMAGE_ID=$REGISTRY/${{ secrets.DOCKERHUB_USERNAME }}/${{ matrix.feature.image }}
+          docker tag ${{ matrix.feature.image }} $IMAGE_ID
+          docker push $IMAGE_ID

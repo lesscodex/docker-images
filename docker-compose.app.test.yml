@@ -1,0 +1,47 @@
+version: "2"
+
+services:
+  apt-cacher:
+    build:
+      context: .
+      dockerfile: app/apt-cacher-ng.Dockerfile
+
+  vlmcsd:
+    build:
+      context: .
+      dockerfile: app/vlmcsd.Dockerfile
+
+  coredns:
+    build:
+      context: app/coredns
+      dockerfile: coredns.Dockerfile
+
+  devpi:
+    build:
+      context: app/devpi
+      dockerfile: devpi-server.Dockerfile
+
+  isc-dhcpd:
+    build:
+      context: .
+      dockerfile: app/dhcpd/alpine.Dockerfile
+
+  mysql-nostrict-5.7:
+    build:
+      context: .
+      dockerfile: app/mysql/nostrict-5.7.Dockerfile
+
+  mysql-pescms-5.7:
+    build:
+      context: .
+      dockerfile: app/mysql/pescms-5.7.Dockerfile
+
+  tomcat-7.0.23-jdk6:
+    build:
+      context: app/tomcat
+      dockerfile: tomcat-7.0.23-jdk6.Dockerfile
+
+  tomcat-7.0.23-jre6:
+    build:
+      context: app/tomcat
+      dockerfile: tomcat-7.0.23-jre6.Dockerfile
