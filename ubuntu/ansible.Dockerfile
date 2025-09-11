@@ -2,7 +2,7 @@ FROM ubuntu:latest
 LABEL maintainer="xxy1991"
 ENV container=docker
 
-ENV pip_packages "ansible"
+ENV pip_packages="ansible"
 
 # Install dependencies.
 COPY app/apt-cacher.sh /usr/local/bin/
