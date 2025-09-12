@@ -1,4 +1,4 @@
-FROM xxy1991/alpine:jdk6
+FROM ghcr.io/lesscodex/alpine:jdk6
 
 ENV CATALINA_HOME /usr/local/tomcat
 ENV PATH $CATALINA_HOME/bin:$PATH
@@ -13,7 +13,7 @@ ENV TOMCAT_MAJOR 7
 ENV TOMCAT_VERSION 7.0.23
 
 RUN wget -q -O tomcat.tar.gz \
-	https://develop.xxy.fyi/archived/apache-tomcat-7.0.23.tar.gz && \
+	https://archive.apache.org/dist/tomcat/tomcat-7/v7.0.23/bin/apache-tomcat-7.0.23.tar.gz && \
 	tar -xf tomcat.tar.gz --strip-components=1; \
 	rm bin/*.bat; \
 	rm tomcat.tar.gz*; \
