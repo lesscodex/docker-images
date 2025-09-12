@@ -3,25 +3,16 @@ on:
     # Publish `main` as Docker `latest` image.
     branches:
       - main
-
-    # Publish `v1.2.3` tags as releases.
-    tags:
-      - v*
-
     paths:
       - ".github/workflows/docker-docker.yml"
       - "docker/**"
-
-  # Run tests for any PRs.
-  pull_request:
-
   # Triggered every week.
   schedule:
     - cron: "0 0 * * FRI"
+  workflow_dispatch:
 
 env:
-  REGISTRY: docker.io
-  REGISTRY_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  REGISTRY: ghcr.io
 
 jobs:
   # Run tests.
@@ -35,7 +26,7 @@ jobs:
         feature: [py3, molecule3]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Run tests
         env:
@@ -51,6 +42,11 @@ jobs:
 
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'schedule'
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
 
     strategy:
       matrix:
@@ -58,25 +54,31 @@ jobs:
         feature: [py3, molecule3]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: Build the Docker image
-        env:
-          FILE_NAME: ${{ matrix.os }}/${{ matrix.feature }}.Dockerfile
-          IMAGE_NAME: ${{ matrix.os }}:${{ matrix.feature }}
-        run: docker build . --file $FILE_NAME
-          --tag $IMAGE_NAME
-
-      - name: Login to Docker Hub
+      - name: Login to Container Registry
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push image
-        env:
-          IMAGE_NAME: ${{ matrix.os }}:${{ matrix.feature }}
-        run: |
-          IMAGE_ID=$REGISTRY/${{ secrets.DOCKERHUB_USERNAME }}/$IMAGE_NAME
-          docker tag $IMAGE_NAME $IMAGE_ID
-          docker push $IMAGE_ID
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push Docker image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.os }}
+          file: ${{ matrix.os }}/${{ matrix.feature }}.Dockerfile
+          tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
+          push: true
+
+      - uses: actions/delete-package-versions@v5
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ matrix.os }}
+          package-type: "container"
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
