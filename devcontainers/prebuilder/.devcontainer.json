@@ -1,0 +1,19 @@
+{
+  "name": "devcontainer",
+  "image": "mcr.microsoft.com/devcontainers/base:debian-12",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/devcontainers-extra/features/npm-package:1": {
+      "package": "@devcontainers/cli"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": ["EditorConfig.EditorConfig", "esbenp.prettier-vscode"]
+    }
+  }
+}
