@@ -1,4 +1,4 @@
-FROM xxy1991/alpine:glibc
+FROM ghcr.io/lesscodex/alpine:glibc
 
 ENV JAVA_VERSION="1.6.0_45" \
     JAVA_HOME="/usr/local/jdk1.6.0_45" \
