@@ -46,3 +46,11 @@ jobs:
           imageTag: ${{ matrix.devcontainer }}
           cacheFrom: ${{ env.REGISTRY }}/${{ github.repository_owner }}/devcontainer:${{ matrix.devcontainer }}
           push: always
+
+      - uses: actions/delete-package-versions@v5
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: devcontainer
+          package-type: "container"
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
