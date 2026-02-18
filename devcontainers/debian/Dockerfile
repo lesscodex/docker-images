@@ -14,4 +14,6 @@ RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && \
         ln -s /usr/local/bin/node /usr/local/bin/nodejs && \
         ln -s /usr/local/lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack 
 
-RUN npm i -g @google/gemini-cli @augmentcode/auggie@prerelease
+RUN npm i -g opencode-ai @openai/codex @google/gemini-cli @augmentcode/auggie@prerelease
+USER 1000
+RUN curl -fsSL https://claude.ai/install.sh | bash -s 2.1.45
