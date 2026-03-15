@@ -9,22 +9,12 @@ services:
       context: .
       dockerfile: "ubuntu/ssh.Dockerfile"
 
-  # debian-ansible:
-  #   build:
-  #     context: .
-  #     dockerfile: "debian/ansible.Dockerfile"
-
-  # ubuntu-ansible:
-  #   build:
-  #     context: .
-  #     dockerfile: "ubuntu/ansible.Dockerfile"
-
-  debian-ansible2:
+  debian-ansible:
     build:
       context: .
-      dockerfile: "debian/ansible2.Dockerfile"
+      dockerfile: "debian/ansible.Dockerfile"
 
-  ubuntu-ansible2:
+  ubuntu-ansible:
     build:
       context: .
-      dockerfile: "ubuntu/ansible2.Dockerfile"
+      dockerfile: "ubuntu/ansible.Dockerfile"

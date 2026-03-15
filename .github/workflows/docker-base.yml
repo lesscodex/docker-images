@@ -25,7 +25,7 @@ jobs:
     strategy:
       matrix:
         os: [debian, ubuntu]
-        feature: [ssh, ansible2]
+        feature: [ssh, ansible]
 
     steps:
       - uses: actions/checkout@v5
@@ -53,7 +53,7 @@ jobs:
     strategy:
       matrix:
         os: [debian, ubuntu]
-        feature: [ssh, ansible2]
+        feature: [ssh, ansible]
 
     steps:
       - uses: actions/checkout@v5
