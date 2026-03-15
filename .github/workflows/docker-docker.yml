@@ -73,7 +73,10 @@ jobs:
           context: ${{ matrix.os }}
           file: ${{ matrix.os }}/${{ matrix.feature }}.Dockerfile
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
-          push: true
+          load: true
+
+      - name: Push the Docker image
+        run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
 
       - uses: actions/delete-package-versions@v5
         with:

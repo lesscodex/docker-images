@@ -82,12 +82,13 @@ jobs:
           context: .
           file: ${{ matrix.os }}/${{ matrix.feature }}.Dockerfile
           tags: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
-          push: true
+          # push: true
+          load: true # docker push
           # tags: ${{ steps.meta.outputs.tags }}
           # labels: ${{ steps.meta.outputs.labels }}
 
-      # - name: Push the Docker image
-      #   run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
+      - name: Push the Docker image
+        run: docker push ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ matrix.os }}:${{ matrix.feature }}
 
       # subject-name不能含tag名, 会生成sha256镜像
       # - name: Generate artifact attestation
@@ -97,6 +98,7 @@ jobs:
       #     subject-digest: ${{ steps.push.outputs.digest }}
       #     push-to-registry: true
 
+      # delete history refs under docker push
       - uses: actions/delete-package-versions@v5
         with:
           owner: ${{ github.repository_owner }}
