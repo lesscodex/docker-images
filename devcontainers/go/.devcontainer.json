@@ -1,0 +1,13 @@
+{
+  "name": "go",
+  "image": "ghcr.io/lesscodex/devcontainer:debian",
+  "features": {
+    "ghcr.io/devcontainers/features/go:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {},
+      "extensions": ["EditorConfig.EditorConfig", "esbenp.prettier-vscode"]
+    }
+  }
+}
