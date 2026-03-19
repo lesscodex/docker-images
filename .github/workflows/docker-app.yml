@@ -107,6 +107,11 @@ jobs:
             file: app/tomcat/tomcat-7.0.23-jre6.Dockerfile
             image: tomcat
             tag: 7.0.23-jre6
+          - name: dsa
+            context: app/daily-stock-analysis
+            file: app/daily-stock-analysis/Dockerfile
+            image: daily-stock-analysis
+            tag: latest
 
     steps:
       - uses: actions/checkout@v5
