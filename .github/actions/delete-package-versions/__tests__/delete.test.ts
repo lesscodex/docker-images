@@ -1,4 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+jest.mock('child_process', () => ({execFile: jest.fn()}))
+
+import {execFile} from 'child_process'
 import {rest} from 'msw'
 import {setupServer} from 'msw/node'
 import {Input, InputParams} from '../src/input'
@@ -8,11 +11,13 @@ import {RestEndpointMethodTypes} from '@octokit/plugin-rest-endpoint-methods/dis
 
 type GetVersionsResponseData =
   RestEndpointMethodTypes['packages']['getAllPackageVersionsForPackageOwnedByUser']['response']['data']
+const execFileMock = execFile as unknown as jest.Mock
 
 describe('index tests -- call rest', () => {
   let server = setupServer()
 
   beforeEach(() => {
+    execFileMock.mockReset()
     server = setupServer()
     server.listen()
   })
@@ -286,6 +291,10 @@ describe('index tests -- call rest', () => {
       )
     )
 
+    execFileMock.mockImplementation((_cmd, _args, _opts, cb) => {
+      cb(null, JSON.stringify({schemaVersion: 2}), '')
+    })
+
     finalIds(
       getInput({
         minVersionsToKeep: 10,
@@ -298,6 +307,72 @@ describe('index tests -- call rest', () => {
       for (let i = 0; i < numUntaggedVersions - 10; i++) {
         expect(ids[i]).toBe(untaggedVersions[i].id.toString())
       }
+      done()
+    })
+  })
+
+  it('finalIds test - keep linked untagged container versions', done => {
+    const taggedVersions = getMockedVersionsResponse(1, 0, 'container', true)
+    taggedVersions[0].name = 'sha256:index'
+    taggedVersions[0].metadata = {
+      ...taggedVersions[0].metadata!,
+      container: {tags: ['latest']}
+    }
+
+    const linkedUntaggedVersions = getMockedVersionsResponse(
+      1,
+      1,
+      'container',
+      false
+    )
+    linkedUntaggedVersions[0].name = 'sha256:linked'
+
+    const staleUntaggedVersions = getMockedVersionsResponse(
+      1,
+      2,
+      'container',
+      false
+    )
+    staleUntaggedVersions[0].name = 'sha256:stale'
+
+    const versions = taggedVersions
+      .concat(linkedUntaggedVersions)
+      .concat(staleUntaggedVersions)
+
+    execFileMock.mockImplementation((_cmd, _args, _opts, cb) => {
+      cb(
+        null,
+        JSON.stringify({
+          schemaVersion: 2,
+          manifests: [{digest: 'sha256:linked'}]
+        }),
+        ''
+      )
+    })
+
+    server.use(
+      rest.get(
+        'https://api.github.com/users/test-owner/packages/container/test-package/versions',
+        (req, res, ctx) => {
+          return res(ctx.status(200), ctx.json(versions))
+        }
+      )
+    )
+
+    finalIds(
+      getInput({
+        minVersionsToKeep: 0,
+        deleteUntaggedVersions: 'true',
+        packageType: 'container'
+      })
+    ).subscribe(ids => {
+      expect(execFile).toHaveBeenCalledWith(
+        'docker',
+        ['manifest', 'inspect', 'ghcr.io/test-owner/test-package:latest'],
+        expect.anything(),
+        expect.any(Function)
+      )
+      expect(ids).toStrictEqual([staleUntaggedVersions[0].id.toString()])
       done()
     })
   })
