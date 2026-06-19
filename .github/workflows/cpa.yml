@@ -27,14 +27,14 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Login to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Resolve upstream image tag
         id: upstream
@@ -90,7 +90,7 @@ jobs:
       - name: Build and push Docker image
         if: steps.current.outputs.skip != 'true'
         id: push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: app/cpa
           file: app/cpa/Dockerfile
@@ -102,7 +102,7 @@ jobs:
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.source_tag }}
 
-      - uses: actions/delete-package-versions@v5
+      - uses: ./.github/actions/delete-package-versions
         if: steps.current.outputs.skip != 'true'
         with:
           owner: ${{ github.repository_owner }}
