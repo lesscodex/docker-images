@@ -1,0 +1,112 @@
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/cpa.yml"
+      - "app/cpa/**"
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: cpa
+  UPSTREAM_IMAGE: eceasy/cli-proxy-api
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Resolve upstream image tag
+        id: upstream
+        env:
+          UPSTREAM_IMAGE: ${{ env.UPSTREAM_IMAGE }}
+        run: |
+          set -euo pipefail
+
+          repo_url="https://hub.docker.com/v2/repositories/${UPSTREAM_IMAGE}/tags"
+          latest="$(curl -fsSL "${repo_url}/latest")"
+          latest_digest="$(jq -r '[.images[]? | select(.os == "linux" and .architecture == "amd64") | .digest][0] // .digest // empty' <<<"${latest}")"
+          if [ -z "${latest_digest}" ]; then
+            echo "failed to resolve ${UPSTREAM_IMAGE}:latest digest" >&2
+            exit 1
+          fi
+
+          tags="$(curl -fsSL "${repo_url}?page_size=100&ordering=last_updated")"
+          source_tag="$(
+            jq -r --arg digest "${latest_digest}" '
+              first(
+                .results[]
+                | select(.name != "latest")
+                | select(.name | test("^v?[0-9]+([._-][0-9A-Za-z]+)*$"))
+                | select(((.digest // "") == $digest) or ([.images[]?.digest] | index($digest)))
+                | .name
+              )
+            ' <<<"${tags}"
+          )"
+          if [ -z "${source_tag}" ]; then
+            echo "failed to find a readable source tag matching ${UPSTREAM_IMAGE}:latest" >&2
+            exit 1
+          fi
+
+          echo "source_tag=${source_tag}" >> "$GITHUB_OUTPUT"
+
+      - name: Check existing image tag
+        id: current
+        env:
+          IMAGE: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
+          SOURCE_TAG: ${{ steps.upstream.outputs.source_tag }}
+        run: |
+          set -euo pipefail
+
+          skip=false
+          if [ "${{ github.event_name }}" = "schedule" ] \
+            && docker manifest inspect "${IMAGE}:${SOURCE_TAG}" >/dev/null 2>&1 \
+            && docker manifest inspect "${IMAGE}:latest" >/dev/null 2>&1; then
+            skip=true
+          fi
+
+          echo "skip=${skip}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push Docker image
+        if: steps.current.outputs.skip != 'true'
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: app/cpa
+          file: app/cpa/Dockerfile
+          pull: true
+          push: true
+          build-args: |
+            CPA_TAG=${{ steps.upstream.outputs.source_tag }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ steps.upstream.outputs.source_tag }}
+
+      - uses: actions/delete-package-versions@v5
+        if: steps.current.outputs.skip != 'true'
+        with:
+          owner: ${{ github.repository_owner }}
+          package-name: ${{ env.IMAGE_NAME }}
+          package-type: "container"
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"
