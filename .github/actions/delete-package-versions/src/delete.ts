@@ -1,10 +1,11 @@
 /* eslint-disable i18n-text/no-en */
 
 import {Input} from './input'
-import {EMPTY, Observable, of, throwError} from 'rxjs'
-import {reduce, concatMap, map, expand, tap} from 'rxjs/operators'
+import {EMPTY, Observable, from, of, throwError} from 'rxjs'
+import {reduce, concatMap, map, expand, tap, mergeMap} from 'rxjs/operators'
 import {
   deletePackageVersions,
+  getLinkedContainerVersionDigests,
   getOldestVersions,
   RestVersionInfo
 } from './version'
@@ -59,8 +60,7 @@ export function finalIds(input: Input): Observable<string[]> {
       1,
       input.token
     ).pipe(
-      // This code block executes on all versions of a package starting from oldest
-      map(value => {
+      mergeMap(value => {
         // we need to delete oldest versions first
         value.sort((a, b) => {
           if (a.created_at === b.created_at) {
@@ -70,36 +70,60 @@ export function finalIds(input: Input): Observable<string[]> {
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
           )
         })
-        /* 
-          Here first filter out the versions that are to be ignored.
-          Then compute number of versions to delete (toDelete) based on the inputs.
-          */
-        value = value.filter(info => !input.ignoreVersions.test(info.version))
+        const protectLinked =
+          input.packageType.toLowerCase() === 'container' &&
+          input.deleteUntaggedVersions === 'true'
 
-        if (input.deleteUntaggedVersions === 'true') {
-          value = value.filter(info => !info.tagged)
-        }
+        const linked = protectLinked
+          ? getLinkedContainerVersionDigests(
+              input.owner,
+              input.packageName,
+              value
+            )
+          : Promise.resolve(new Set<string>())
 
-        let toDelete = 0
-        if (input.minVersionsToKeep < 0) {
-          toDelete = Math.min(
-            value.length,
-            Math.min(input.numOldVersionsToDelete, RATE_LIMIT)
-          )
-        } else {
-          toDelete = Math.min(
-            value.length - input.minVersionsToKeep,
-            RATE_LIMIT
-          )
-        }
-        if (toDelete < 0) return []
-        return value.map(info => info.id.toString()).slice(0, toDelete)
+        return from(linked).pipe(
+          map(digests => versionIds(input, value, protectLinked, digests))
+        )
       })
     )
   }
   return throwError(
     "Could not get packageVersionIds. Explicitly specify using the 'package-version-ids' input"
   )
+}
+
+function versionIds(
+  input: Input,
+  versions: RestVersionInfo[],
+  protectLinked: boolean,
+  linked: Set<string>
+): string[] {
+  /*
+    Here first filter out the versions that are to be ignored.
+    Then compute number of versions to delete (toDelete) based on the inputs.
+    */
+  let value = versions
+  value = value.filter(info => !input.ignoreVersions.test(info.version))
+
+  if (input.deleteUntaggedVersions === 'true') {
+    value = value.filter(info => !info.tagged)
+    if (protectLinked) {
+      value = value.filter(info => !linked.has(info.version))
+    }
+  }
+
+  let toDelete = 0
+  if (input.minVersionsToKeep < 0) {
+    toDelete = Math.min(
+      value.length,
+      Math.min(input.numOldVersionsToDelete, RATE_LIMIT)
+    )
+  } else {
+    toDelete = Math.min(value.length - input.minVersionsToKeep, RATE_LIMIT)
+  }
+  if (toDelete < 0) return []
+  return value.map(info => info.id.toString()).slice(0, toDelete)
 }
 
 export function deleteVersions(input: Input): Observable<boolean> {
