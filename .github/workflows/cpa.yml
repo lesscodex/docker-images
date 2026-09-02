@@ -16,6 +16,7 @@ env:
 
 jobs:
   push:
+    if: github.server_url == 'https://github.com' || github.event_name != 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: read
