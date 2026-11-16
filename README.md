@@ -5,6 +5,7 @@
 ![.github/workflows/docker-app.yml](https://github.com/lesscodex/docker-images/actions/workflows/docker-app.yml/badge.svg)
 ![.github/workflows/devcontainers.yml](https://github.com/lesscodex/docker-images/actions/workflows/devcontainers.yml/badge.svg)
 ![.github/workflows/cpa.yml](https://github.com/lesscodex/docker-images/actions/workflows/cpa.yml/badge.svg)
+![.github/workflows/mihomo.yml](https://github.com/lesscodex/docker-images/actions/workflows/mihomo.yml/badge.svg)
 
 common docker images
 

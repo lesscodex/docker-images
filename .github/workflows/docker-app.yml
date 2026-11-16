@@ -8,6 +8,7 @@ on:
       - "*.app.test.yml"
       - "app/**"
       - "!app/cpa/**"
+      - "!app/mihomo/**"
   # Triggered every week.
   schedule:
     - cron: "0 0 * * FRI"
